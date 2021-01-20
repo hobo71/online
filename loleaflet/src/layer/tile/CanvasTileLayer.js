@@ -42,13 +42,12 @@ L.TileSectionManager = L.Class.extend({
 		this._layer = layer;
 		this._canvas = this._layer._canvas;
 		this._map = this._layer._map;
-		var mapSize = this._map.getPixelBoundsCore().getSize();
 		this._offscreenCanvases = [];
 		this._oscCtxs = [];
 		this._tilesSection = null; // Shortcut.
 
 		this._sectionContainer = new CanvasSectionContainer(this._canvas);
-		this._sectionContainer.onResize(mapSize.x, mapSize.y);
+		this._sectionContainer.onResize();
 
 		var dpiScale = L.getDpiScaleFactor(true /* useExactDPR */);
 		this._dpiScale = dpiScale;
@@ -533,9 +532,9 @@ L.CanvasTileLayer = L.TileLayer.extend({
 
 		L.TileLayer.prototype._initContainer.call(this);
 
-		var mapContainer = this._map.getContainer();
+		var documentContainer = document.getElementById('document-container');
 		var canvasContainerClass = 'leaflet-canvas-container';
-		this._canvasContainer = L.DomUtil.create('div', canvasContainerClass, mapContainer);
+		this._canvasContainer = L.DomUtil.create('div', canvasContainerClass, documentContainer);
 		this._setup();
 	},
 
@@ -546,6 +545,7 @@ L.CanvasTileLayer = L.TileLayer.extend({
 		}
 
 		this._canvas = L.DomUtil.create('canvas', '', this._canvasContainer);
+		this._canvas.id = 'document-canvas'; // First need appeared because of the context menus.
 		this._container.style.position = 'absolute';
 		this._painter = new L.TileSectionManager(this);
 		this._painter._addTilesSection();
@@ -590,10 +590,9 @@ L.CanvasTileLayer = L.TileLayer.extend({
 	_syncTileContainerSize: function () {
 		var tileContainer = this._container;
 		if (tileContainer) {
-			var size = this._map.getPixelBounds().getSize();
-			this._painter._sectionContainer.onResize(size.x, size.y);
 			tileContainer.style.width = this._painter._sectionContainer.canvas.style.width;
 			tileContainer.style.height = this._painter._sectionContainer.canvas.style.height;
+			this._painter._sectionContainer.onResize();
 		}
 	},
 

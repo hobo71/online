@@ -81,8 +81,6 @@ L.CalcTileLayer = L.CanvasTileLayer.extend({
 
 	onAdd: function (map) {
 		map.addControl(L.control.tabs());
-		map.addControl(L.control.columnHeader());
-		map.addControl(L.control.rowHeader());
 		L.CanvasTileLayer.prototype.onAdd.call(this, map);
 
 		map.on('resize', function () {
@@ -750,12 +748,45 @@ L.CalcTileLayer = L.CanvasTileLayer.extend({
 		});
 	},
 
+	_addRemoveHeaderAndGroupSections: function () {
+		// If there are row and column groups at the same time, add CornerGroup section.
+		if (this.sheetGeometry._rows._outlines._outlines.length > 0 && this.sheetGeometry._columns._outlines._outlines.length > 0) {
+			if (!this._painter._sectionContainer.doesSectionExist(L.CSections.CornerGroup.name))
+				this._painter._sectionContainer.addSection(L.control.cornerGroup());
+		}
+		else { // If not, remove CornerGroup section.
+			this._painter._sectionContainer.removeSection(L.CSections.CornerGroup.name);
+		}
+
+		// If there are row groups, add RowGroup section.
+		if (this.sheetGeometry._rows._outlines._outlines.length > 0) {
+			if (!this._painter._sectionContainer.doesSectionExist(L.CSections.RowGroup.name))
+				this._painter._sectionContainer.addSection(L.control.rowGroup());
+		}
+		else { // If not, remove RowGroup section.
+			this._painter._sectionContainer.removeSection(L.CSections.RowGroup.name);
+		}
+
+		// If there are column groups, add ColumnGroup section.
+		if (this.sheetGeometry._columns._outlines._outlines.length > 0) {
+			if (!this._painter._sectionContainer.doesSectionExist(L.CSections.ColumnGroup.name))
+				this._painter._sectionContainer.addSection(L.control.columnGroup());
+		}
+		else { // If not, remove ColumnGroup section.
+			this._painter._sectionContainer.removeSection(L.CSections.ColumnGroup.name);
+		}
+	},
+
 	_handleSheetGeometryDataMsg: function (jsonMsgObj) {
 		if (!this.sheetGeometry) {
 			this._sheetGeomFirstWait = false;
 			this.sheetGeometry = new L.SheetGeometry(jsonMsgObj,
 				this._tileWidthTwips, this._tileHeightTwips,
 				this._tileSize, this._selectedPart);
+
+			this._painter._sectionContainer.addSection(L.control.cornerHeader());
+			this._painter._sectionContainer.addSection(L.control.rowHeader());
+			this._painter._sectionContainer.addSection(L.control.columnHeader());
 		}
 		else {
 			this.sheetGeometry.update(jsonMsgObj, /* checkCompleteness */ false, this._selectedPart);
@@ -765,6 +796,9 @@ L.CalcTileLayer = L.CanvasTileLayer.extend({
 
 		this.sheetGeometry.setViewArea(this._pixelsToTwips(this._map._getTopLeftPoint()),
 			this._pixelsToTwips(this._map.getSize()));
+
+		this._addRemoveHeaderAndGroupSections();
+
 		this._updateHeadersGridLines(undefined, true /* updateCols */,
 			true /* updateRows */);
 
