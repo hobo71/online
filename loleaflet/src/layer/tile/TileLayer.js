@@ -63,6 +63,8 @@ L.TileLayer = L.GridLayer.extend({
 		marginY: 10
 	},
 
+	_pngCache: [],
+
 	initialize: function (url, options) {
 
 		this._url = url;
@@ -1963,12 +1965,34 @@ L.TileLayer = L.GridLayer.extend({
 	_onDialogPaintMsg: function(textMsg, img) {
 		var command = this._map._socket.parseServerCmd(textMsg);
 
+		// console.log('_onDialogPaintMsg: hash=' + command.hash + ' img=' + typeof(img) + (typeof(img) == 'string' ? (' (length:' + img.length + ':"' + img.substring(0, 30) + (img.length > 30 ? '...' : '') + '")') : '') + ', cache size ' + this._pngCache.length);
+		for (var i = 0; i < this._pngCache.length; i++) {
+			if (this._pngCache[i].hash == command.hash) {
+				// console.log('  Found in cache');
+				img = this._pngCache[i].img;
+				// Remove item and add it at the start of the array
+				this._pngCache.splice(i, 1);
+				break;
+			}
+		}
+		// If cache is max size, drop the last element
+		if (this._pngCache.length == this._map._socket.TunnelledDialogImageCacheSize) {
+			// console.log('  Dropping last cache element');
+			this._pngCache.pop();
+		}
+
+		// Add element to cache
+		this._pngCache.unshift({hash: command.hash, img:img});
+
+		// console.log('  Cache size now ' + this._pngCache.length);
+
 		this._map.fire('windowpaint', {
 			id: command.id,
 			img: img,
 			width: command.width,
 			height: command.height,
-			rectangle: command.rectangle
+			rectangle: command.rectangle,
+			hash: command.hash
 		});
 	},
 
